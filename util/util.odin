@@ -22,17 +22,10 @@ Input_State :: struct {
     gamepad: Gamepad_State,
 }
 
-
-// NOTE: The ordering is dependent on target platform
-// when ODIN_OS == .Windows {
-Color_4b :: struct {
-    b, g, r, a: u8,
-}
-// }
-
 Pixmap :: struct {
     pixels: rawptr,
-    w, h, bytes_per_pixel: i32,
+    w, h, bytes_per_pixel, pitch: i32,
+    pixel_format: Pixel_Format, 
 }
 
 make_pixmap :: proc(
@@ -62,6 +55,35 @@ wait_frame_interval :: proc(
         time.sleep(sleep_time * time.Microsecond)
     }
     previous_frame_tick^ = now
+}
+
+Pixel_Format :: struct {
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+}
+
+Color4b :: u32
+
+color4b_from_4f :: proc(color: Color4f, format: Pixel_Format) -> Color4b {
+    color4b: Color4b
+    color4b |= (cast(u32)(color.r * 255.0)) << format.r
+    color4b |= (cast(u32)(color.g * 255.0)) << format.g
+    color4b |= (cast(u32)(color.b * 255.0)) << format.b
+    color4b |= (cast(u32)(color.a * 255.0)) << format.a
+
+    return color4b
+}
+
+color4f_from_4b :: proc(color: Color4b, format: Pixel_Format) -> Color4f {
+    color4f: Color4f = {
+        cast(f32)(((color >> format.r) & 0xff) / 255.0),
+        cast(f32)(((color >> format.g) & 0xff) / 255.0),
+        cast(f32)(((color >> format.b) & 0xff) / 255.0),
+        cast(f32)(((color >> format.a) & 0xff) / 255.0),
+    }
+    return color4f
 }
 
 
