@@ -2,6 +2,11 @@ package util
 
 Window_ID :: uintptr
 
+Renderer_Backend :: enum {
+    Software,
+    Opengl,
+}
+
 Window_Event :: struct {
     type: Window_Event_Type,
     source_window: Window_ID,

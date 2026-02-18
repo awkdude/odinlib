@@ -2,6 +2,7 @@ package util
 
 import "core:unicode"
 import "core:math"
+import "core:log"
 import "core:time"
 import "core:mem"
 import "base:runtime"
@@ -34,7 +35,8 @@ make_pixmap :: proc(
     allocator := context.allocator) -> (Pixmap, bool) #optional_ok 
 {
     pixels, err := mem.alloc(cast(int)(w * h * bytes_per_pixel), allocator=allocator)
-    return Pixmap {pixels=pixels, w=w, h=h, bytes_per_pixel=bytes_per_pixel}, err == .None
+    // FIXME: Set pitch to be multiple of 4 or 8
+    return Pixmap {pixels=pixels, w=w, h=h, pitch=w,bytes_per_pixel=bytes_per_pixel}, err == .None
 }
 
 wait_frame_interval :: proc(
@@ -46,6 +48,7 @@ wait_frame_interval :: proc(
     time_elapsed_usec := cast(i64)time.duration_microseconds(time_elapsed_duration)
     target_frame_interval_usec := cast(i64)time.duration_microseconds(target_frame_interval)
     if time_elapsed_usec < target_frame_interval_usec {
+        // log.debugf("dt: %v usec", target_frame_interval_usec - time_elapsed_usec)
         sleep_time := time.Duration(
             max(
                 1,
@@ -64,9 +67,16 @@ Pixel_Format :: struct {
     a: u8,
 }
 
+DEFAULT_PIXEL_FORMAT :: Pixel_Format {
+    r=16,
+    g=8,
+    b=0,
+    a=24,
+}
+
 Color4b :: u32
 
-color4b_from_4f :: proc(color: Color4f, format: Pixel_Format) -> Color4b {
+color4f_to_4b :: proc(color: Color4f, format: Pixel_Format = DEFAULT_PIXEL_FORMAT) -> Color4b {
     color4b: Color4b
     color4b |= (cast(u32)(color.r * 255.0)) << format.r
     color4b |= (cast(u32)(color.g * 255.0)) << format.g
@@ -76,9 +86,9 @@ color4b_from_4f :: proc(color: Color4f, format: Pixel_Format) -> Color4b {
     return color4b
 }
 
-color4f_from_4b :: proc(color: Color4b, format: Pixel_Format) -> Color4f {
+color4b_to_4f :: proc(color: Color4b, format: Pixel_Format = DEFAULT_PIXEL_FORMAT) -> Color4f {
     color4f: Color4f = {
-        cast(f32)(((color >> format.r) & 0xff) / 255.0),
+    cast(f32)(((color >> format.r) & 0xff) / 255.0),
         cast(f32)(((color >> format.g) & 0xff) / 255.0),
         cast(f32)(((color >> format.b) & 0xff) / 255.0),
         cast(f32)(((color >> format.a) & 0xff) / 255.0),
