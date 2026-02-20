@@ -143,6 +143,10 @@ rect_to_bbox :: proc {
 
 // }}}
 
+rect_to_centered :: proc(r: Rect) -> Rect {
+    return Rect{r.x - r.w / 2, r.y - r.h / 2, r.w, r.h}
+}
+
 rect_centered_in_rect :: proc(inner_rect, outer_rect: Rect) -> Rect {
     outer_center := vec2{outer_rect.w / 2, outer_rect.h/2}
     return Rect {

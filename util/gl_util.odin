@@ -95,15 +95,15 @@ shader_program_from_file :: proc(
     // {{{
     shader_program = 0
     program_err = nil
-    vertex_source, v_ok := os.read_entire_file_from_filename(vertex_source_path, allocator)
-    if !v_ok {
+    vertex_source, v_err := os.read_entire_file_from_path(vertex_source_path, allocator)
+    if v_err != nil {
         log.errorf("'%v' does not exist!", vertex_source_path)
         program_err = .File_Not_Found
         return 
     } 
     defer delete(vertex_source, allocator)
-    fragment_source, f_ok := os.read_entire_file_from_filename(fragment_source_path, allocator)
-    if !f_ok {
+    fragment_source, f_err := os.read_entire_file_from_path(fragment_source_path, allocator)
+    if f_err != nil {
         log.errorf("'%v' does not exist!", fragment_source_path)
         program_err = .File_Not_Found
         return
