@@ -7,8 +7,6 @@ import "core:time"
 import "core:mem"
 import "base:runtime"
 
-PLATFORM_BACKEND :: #config(BACKEND, "native")
-
 Keyboard_State :: [32]u8
 
 Input_State :: struct {
@@ -45,7 +43,7 @@ make_pixmap :: proc(
     }, err == .None
 }
 
-wait_frame_interval :: proc(
+wait_frame_interval :: proc "contextless"(
     previous_frame_tick: ^time.Tick,
     target_frame_interval: time.Duration)
 {
@@ -82,7 +80,7 @@ DEFAULT_PIXEL_FORMAT :: Pixel_Format {
 
 Color4b :: u32
 
-color4f_to_4b :: proc(color: Color4f, format: Pixel_Format = DEFAULT_PIXEL_FORMAT) -> Color4b {
+color4f_to_4b :: proc "contextless" (color: Color4f, format: Pixel_Format = DEFAULT_PIXEL_FORMAT) -> Color4b {
     color4b: Color4b
     color4b |= ((cast(u32)(color.r * 255.0)) & 0xff) << format.r
     color4b |= ((cast(u32)(color.g * 255.0)) & 0xff) << format.g
@@ -92,7 +90,7 @@ color4f_to_4b :: proc(color: Color4f, format: Pixel_Format = DEFAULT_PIXEL_FORMA
     return color4b
 }
 
-color4b_to_4f :: proc(color: Color4b, format: Pixel_Format = DEFAULT_PIXEL_FORMAT) -> Color4f {
+color4b_to_4f :: proc "contextless" (color: Color4b, format: Pixel_Format = DEFAULT_PIXEL_FORMAT) -> Color4f {
     color4f: Color4f = {
         cast(f32)(((color >> format.r) & 0xff) / 255.0),
         cast(f32)(((color >> format.g) & 0xff) / 255.0),

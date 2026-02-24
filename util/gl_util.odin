@@ -373,7 +373,7 @@ create_texture_from_pixmap :: proc(
 }
 
 
-projection_mat_from_window_size :: proc(window_size: vec2) -> mat4 {
+projection_mat_from_window_size :: proc "contextless" (window_size: vec2) -> mat4 {
     return linalg.matrix_ortho3d(
         0.0,
         cast(f32)window_size.x,
