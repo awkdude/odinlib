@@ -61,7 +61,7 @@ load_png :: proc(
     defer os.close(file)
 
     buffer: [64]u8
-    os.seek(file, 0, os.SEEK_SET)
+    os.seek(file, 0, .Start)
     // Read PNG signature + length + chunk type + IHDR data + CRC
     os.read(file, buffer[:33])
     if bytes.compare(buffer[:8], file_header[:]) != 0 {
@@ -128,7 +128,7 @@ load_png :: proc(
         case tRNS:
             // Discard if not color type is not indexed-color
             if color_type != 3 {
-                os.seek(file, i64(chunk_length), os.SEEK_CUR)
+                os.seek(file, i64(chunk_length), .Current)
             } else {
                 for i in 0..<chunk_length {
                     os.read_ptr(file, &color_lookup_table[i], 4)
@@ -158,10 +158,10 @@ load_png :: proc(
         case IEND:
             reached_iend = true
         case:
-            os.seek(file, cast(i64)chunk_length, os.SEEK_CUR)
+            os.seek(file, cast(i64)chunk_length, .Current)
         }
         // Skip CRC
-        os.seek(file, 4, os.SEEK_CUR)
+        os.seek(file, 4, .Current)
     }
     output_buffer: bytes.Buffer
     defer bytes.buffer_destroy(&output_buffer)

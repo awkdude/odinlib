@@ -1,6 +1,7 @@
 package util
 import "core:math"
 import "base:intrinsics"
+import "core:time"
 
 Rect :: struct {
     x, y, w, h: i32,
@@ -231,3 +232,13 @@ bit_test :: proc "contextless" (bits: []u8, bit_idx: uint) -> bool {
     return (bits[byte_idx] & (1 << bit)) != 0
 }
 
+time_sin :: proc(freq: f32 = 1.0, min: f32 = 0.0, max: f32 = 1.0) -> f32 {
+    duration := time.duration_seconds(time.tick_since({})) * cast(f64)freq
+    return normalize_to_range(
+        cast(f32)math.sin(duration * math.TAU),
+        -1.0,
+        1.0,
+        min,
+        max
+    )
+}
