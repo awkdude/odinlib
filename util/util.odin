@@ -7,6 +7,10 @@ import "core:time"
 import "core:mem"
 import "base:runtime"
 
+space :: proc(dyn_slice: $T/[dynamic; $N]$E) -> int {
+    return cap(dyn_slice) - len(dyn_slice)
+}
+
 Keyboard_State :: [32]u8
 
 Input_State :: struct {
