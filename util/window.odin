@@ -2,7 +2,7 @@ package util
 
 Window_ID :: uintptr
 
-Renderer_Backend :: enum {
+Renderer_Backend :: enum i32 {
     Software,
     Opengl,
 }

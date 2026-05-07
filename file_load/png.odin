@@ -12,7 +12,8 @@ import "core:log"
 import "core:c"
 import "core:compress/zlib"
 
-Color_4b :: util.Color_4b
+Color_4b :: util.Color4b
+Color_RGBA :: util.Color_RGBA
 
 file_header := [?]u8 {0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
 PLTE :: 0x504c5445
@@ -38,7 +39,7 @@ u32_from_be_bytes :: proc (bytes: []u8) -> u32be {
 
 u16_from_be_bytes :: proc(bytes: []u8) -> u16be {
     return (^u16be)(slice.as_ptr(bytes))^
-} 
+}
 
 is_png :: proc(path: string) -> bool {
     file, open_err := os.open(path)
@@ -46,14 +47,14 @@ is_png :: proc(path: string) -> bool {
     defer os.close(file)
 
     buffer: [8]u8
-    // os.seek(file, 0, os.SEEK_SET)
     os.read(file, buffer[:])
     return bytes.compare(buffer[:], file_header[:]) == 0
 }
 
 load_png :: proc(
     path: string,
-    allocator := context.allocator) -> (util.Pixmap, bool) #optional_ok 
+    pixel_format: util.Pixel_Format = util.DEFAULT_PIXEL_FORMAT,
+    allocator := context.allocator) -> (util.Pixmap, bool) #optional_ok
 {
     // {{{
     file, open_err := os.open(path)
@@ -61,7 +62,7 @@ load_png :: proc(
     defer os.close(file)
 
     buffer: [64]u8
-    os.seek(file, 0, os.SEEK_SET)
+    os.seek(file, 0, .Start)
     // Read PNG signature + length + chunk type + IHDR data + CRC
     os.read(file, buffer[:33])
     if bytes.compare(buffer[:8], file_header[:]) != 0 {
@@ -84,10 +85,15 @@ load_png :: proc(
         bytes_per_pixel = 4
     }
     output_bufsize := uint(width * height * bytes_per_pixel + height)
-    log.debugf("IHDR (13 bytes)\n\tWidth: %d\n\tHeight: %d\n\tBit depth: %d\n\tColor type: " + 
+    log.debugf(
+    "IHDR (13 bytes)\n\tWidth: %d\n\tHeight: %d\n\tBit depth: %d\n\tColor type: " +
            "%s\n\tInterlace method: %d\n",
-           width, height, bits_per_channel, color_type_strs[color_type],
-           interlace_method)
+           width,
+           height,
+           bits_per_channel,
+           color_type_strs[color_type],
+           interlace_method
+    )
 
     if bits_per_channel != 8 {
         return {}, false
@@ -95,9 +101,13 @@ load_png :: proc(
     // output_bytes := make([]u8, output_bufsize, allocator)
     // defer delete(output_bytes)
 
-    color_lookup_table: []util.Color_4b
-    if color_type == 3 do color_lookup_table = make([]util.Color_4b, 256, allocator)
-    defer if color_type == 3 do delete(color_lookup_table)
+    color_lookup_table: []Color_RGBA
+    if color_type == 3 {
+    	color_lookup_table = make([]Color_RGBA, 256, allocator)
+    }
+    defer if color_type == 3 {
+    	delete(color_lookup_table)
+    }
     reached_iend := false
     str: [4]u8
     idat_buffer := make([]u8, output_bufsize, allocator)
@@ -113,14 +123,15 @@ load_png :: proc(
         log.debugf("Type: %s, Length: %d\n", str, chunk_length)
         switch chunk_type {
         case PLTE:
-            entry: [3]u8
+            entry: [4]u8
             num_entries := chunk_length / 3
             for i in 0..<num_entries {
-                os.read(file, entry[:])
-                color_lookup_table[i].r = entry[0] 
-                color_lookup_table[i].g = entry[1] 
-                color_lookup_table[i].b = entry[2] 
+                os.read(file, entry[:3])
+                color_lookup_table[i].r = entry[0]
+                color_lookup_table[i].g = entry[1]
+                color_lookup_table[i].b = entry[2]
                 color_lookup_table[i].a = 255
+                // color_lookup_table[i] = util.pack_color(entry, pixel_format)
             }
         case IDAT:
             os.read(file, idat_buffer[input_offset:input_offset+cast(int)chunk_length])
@@ -128,7 +139,7 @@ load_png :: proc(
         case tRNS:
             // Discard if not color type is not indexed-color
             if color_type != 3 {
-                os.seek(file, i64(chunk_length), os.SEEK_CUR)
+                os.seek(file, i64(chunk_length), .Current)
             } else {
                 for i in 0..<chunk_length {
                     os.read_ptr(file, &color_lookup_table[i], 4)
@@ -153,29 +164,41 @@ load_png :: proc(
                 r = color_lookup_table[idx].r
                 g = color_lookup_table[idx].g
                 b = color_lookup_table[idx].b
+                // rgba := unpack_color_rgba(color_lookup_table[idx])
             }
             log.debugf("\tBackground color: %.2x %.2x %.2x\n", r, g, b)
         case IEND:
             reached_iend = true
         case:
-            os.seek(file, cast(i64)chunk_length, os.SEEK_CUR)
+            os.seek(file, cast(i64)chunk_length, .Current)
         }
         // Skip CRC
-        os.seek(file, 4, os.SEEK_CUR)
+        os.seek(file, 4, .Current)
     }
     output_buffer: bytes.Buffer
     defer bytes.buffer_destroy(&output_buffer)
     // dest_len := cast(c.ulong)len(output_bytes)
-    // zlib_ret := zlib.uncompress(raw_data(output_bytes), &dest_len, 
+    // zlib_ret := zlib.uncompress(raw_data(output_bytes), &dest_len,
     //     raw_data(idat_buffer), cast(c.ulong)input_offset)
     zlib.inflate(idat_buffer[:input_offset], &output_buffer)
     output_bytes := bytes.buffer_to_bytes(&output_buffer)
     png_unfilter_bytes(output_bytes, width, height, int(bytes_per_pixel))
-    return png_read_pixels(output_bytes, width, height, color_type, color_lookup_table)
+    return png_read_pixels(
+    	output_bytes,
+     	width,
+      	height,
+       	color_type,
+        color_lookup_table,
+    	pixel_format
+     )
 // }}}
 }
 
-png_unfilter_bytes :: proc(png_bytes: []u8, width, height: i32, bytes_per_pixel: int) {
+png_unfilter_bytes :: proc(
+	png_bytes: []u8,
+ 	width, height: i32,
+  	bytes_per_pixel: int)
+{
 // {{{
     /*
        -----------------------
@@ -206,7 +229,7 @@ png_unfilter_bytes :: proc(png_bytes: []u8, width, height: i32, bytes_per_pixel:
             byte := png_bytes[byte_i]
             left_byte := png_bytes[left_byte_i] if (x >= bytes_per_pixel) else 0
             top_byte := png_bytes[top_byte_i] if scanline > 0 else 0
-            top_left_byte := png_bytes[top_left_byte_i] if 
+            top_left_byte := png_bytes[top_left_byte_i] if
                 (x >= bytes_per_pixel && scanline > 0) else 0
 
             pr: i32
@@ -243,19 +266,20 @@ png_read_pixels :: proc(
     png_bytes: []u8,
     width, height: i32,
     color_type: u8,
-    color_lookup_table: []util.Color_4b) -> (util.Pixmap, bool) 
+    color_lookup_table: []Color_RGBA,
+    pixel_format: util.Pixel_Format) -> (util.Pixmap, bool)
 {
 // {{{
-    pixmap, alloc_ok := util.make_pixmap(width, height) 
-    if !alloc_ok { 
+    pixmap, alloc_ok := util.make_pixmap(width, height)
+    if !alloc_ok {
         return {}, false
     }
-    color: util.Color_4b
+    color: Color_RGBA
     byte_i: uint = 0
     row: i32
     pixels := cast([^]Color_4b)pixmap.pixels
     switch color_type {
-    case 0: 
+    case 0:
         for y in 0..<pixmap.h {
             byte_i += 1
             for x in 0..<pixmap.w {
@@ -263,7 +287,7 @@ png_read_pixels :: proc(
                 color.g = png_bytes[byte_i]
                 color.b = png_bytes[byte_i]
                 color.a = 255
-                pixels[row + x] = color
+                pixels[row + x] = util.pack_color(color, pixel_format)
                 byte_i += 1
             }
             row += pixmap.w
@@ -276,12 +300,12 @@ png_read_pixels :: proc(
                 color.g = png_bytes[byte_i]
                 color.b = png_bytes[byte_i]
                 color.a = png_bytes[byte_i + 1]
-                pixels[row + x] = color
+                pixels[row + x] = util.pack_color(color, pixel_format)
                 byte_i += 2
             }
             row += pixmap.w
         }
-    case 2: 
+    case 2:
         for y in 0..<pixmap.h {
             byte_i += 1
             for x in 0..<pixmap.w {
@@ -289,12 +313,12 @@ png_read_pixels :: proc(
                 color.g = png_bytes[byte_i + 1]
                 color.b = png_bytes[byte_i + 2]
                 color.a = 255
-                pixels[row + x] = color
+                pixels[row + x] = util.pack_color(color, pixel_format)
                 byte_i += 3
             }
             row += pixmap.w
         }
-    case 6: 
+    case 6:
         for y in 0..<pixmap.h {
             byte_i += 1
             for x in 0..<pixmap.w {
@@ -302,12 +326,12 @@ png_read_pixels :: proc(
                 color.g = png_bytes[byte_i + 1]
                 color.b = png_bytes[byte_i + 2]
                 color.a = png_bytes[byte_i + 3]
-                pixels[row + x] = color
+                pixels[row + x] =  util.pack_color(color, pixel_format)
                 byte_i += 4
             }
             row += pixmap.w
         }
-    case 3: 
+    case 3:
         for y in 0..<pixmap.h {
             byte_i += 1
             for x in 0..<pixmap.w {
@@ -315,7 +339,7 @@ png_read_pixels :: proc(
                 color.g = color_lookup_table[png_bytes[byte_i]].g
                 color.b = color_lookup_table[png_bytes[byte_i]].b
                 color.a = color_lookup_table[png_bytes[byte_i]].a
-                pixels[row + x] = color
+                pixels[row + x] = util.pack_color(color, pixel_format)
                 byte_i += 1
             }
             row += pixmap.w

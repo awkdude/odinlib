@@ -1,7 +1,7 @@
 package util
 import "core:math"
 import "base:intrinsics"
-import "core:unicode"
+import "core:time"
 
 Rect :: struct {
     x, y, w, h: i32,
@@ -29,16 +29,16 @@ Color3f :: [3]f32
 Color4f :: [4]f32
 
 
-normalize_to_range :: proc(value, mini, maxi, minf, maxf: f32) -> f32 {
+normalize_to_range :: proc "contextless" (value, mini, maxi, minf, maxf: f32) -> f32 {
     return ((value - mini) / (maxi - mini)) * (maxf - minf) + minf;
 }
 
-point_in_rect_i :: proc(p: vec2, rect: Rect) -> bool {
+point_in_rect_i :: proc "contextless" (p: vec2, rect: Rect) -> bool {
     return p.x >= rect.x && p.x < (rect.x + rect.w) && 
         p.y >= rect.y && p.y < (rect.y + rect.h)
 }
 
-point_in_rect_f :: proc(p: vec2f, rect: Rectf) -> bool {
+point_in_rect_f :: proc "contextless" (p: vec2f, rect: Rectf) -> bool {
     return p.x >= rect.x && p.x < (rect.x + rect.w) && 
         p.y >= rect.y && p.y < (rect.y + rect.h)
 }
@@ -48,26 +48,21 @@ point_in_rect :: proc {
     point_in_rect_f 
 }
 
-dip_to_px :: proc(dip, dots_per_inch: i32) -> i32 {
+dip_to_px :: proc "contextless" (dip, dots_per_inch: i32) -> i32 {
     return i32(cast(f32)dip / 96.0 * cast(f32)dots_per_inch)
 }
 
-size_to_rect :: proc(size: vec2) -> Rect {
+size_to_rect :: proc "contextless" (size: vec2) -> Rect {
     return Rect { w=size.x, h=size.y }
 }
 
-scale_vec2_s :: proc(v: vec2, s: f32) -> vec2 {
-    return vec2 {
-        cast(i32)(cast(f32)v.x * s),
-        cast(i32)(cast(f32)v.y * s),
-    }
+
+scale_vec2_s :: proc "contextless" (v: vec2, s: f32) -> vec2 {
+    return cast(vec2)(cast(vec2f)v * s)
 }
 
-scale_vec2_v :: proc(v: vec2, sv: vec2f) -> vec2 {
-    return vec2 {
-        cast(i32)(cast(f32)v.x * sv.x),
-        cast(i32)(cast(f32)v.y * sv.y),
-    }
+scale_vec2_v :: proc "contextless" (v: vec2, sv: vec2f) -> vec2 {
+    return cast(vec2)(cast(vec2f)v * sv)
 }
 
 scale_vec2 :: proc {
@@ -75,12 +70,12 @@ scale_vec2 :: proc {
     scale_vec2_v,
 }
 
-pos_size_to_rect :: proc(pos, size: vec2) -> Rect {
+pos_size_to_rect :: proc "contextless" (pos, size: vec2) -> Rect {
     return Rect {x=pos.x, y=pos.y, w=size.x, h=size.y}
 }
 
 // bbox rect conversion {{{
-bbox_to_rect_i :: proc(bbox: BBox) -> Rect {
+bbox_to_rect_i :: proc "contextless" (bbox: BBox) -> Rect {
     return Rect {
         x=min(bbox.x0, bbox.x1),
         y=min(bbox.y0, bbox.y1),
@@ -89,7 +84,7 @@ bbox_to_rect_i :: proc(bbox: BBox) -> Rect {
     }
 }
 
-bbox_to_rect_f :: proc(bbox: BBoxf) -> Rectf {
+bbox_to_rect_f :: proc "contextless" (bbox: BBoxf) -> Rectf {
     return Rectf {
         x=min(bbox.x0, bbox.x1),
         y=min(bbox.y0, bbox.y1),
@@ -103,7 +98,7 @@ bbox_to_rect :: proc {
     bbox_to_rect_f, 
 }
 
-rect_to_bbox_i :: proc(rect: Rect) -> BBox {
+rect_to_bbox_i :: proc "contextless" (rect: Rect) -> BBox {
     bbox := BBox {
         x0=rect.x,
         y0=rect.y,
@@ -119,7 +114,7 @@ rect_to_bbox_i :: proc(rect: Rect) -> BBox {
     return bbox
 }
 
-rect_to_bbox_f :: proc(rect: Rectf) -> BBoxf {
+rect_to_bbox_f :: proc "contextless" (rect: Rectf) -> BBoxf {
     bbox := BBoxf {
         x0=rect.x,
         y0=rect.y,
@@ -135,7 +130,7 @@ rect_to_bbox_f :: proc(rect: Rectf) -> BBoxf {
     return bbox
 }
 
-rect_to_bbox :: proc {
+rect_to_bbox :: proc  {
     rect_to_bbox_i,
     rect_to_bbox_f,
 }
@@ -143,11 +138,11 @@ rect_to_bbox :: proc {
 
 // }}}
 
-rect_to_centered :: proc(r: Rect) -> Rect {
+rect_to_centered :: proc "contextless" (r: Rect) -> Rect {
     return Rect{r.x - r.w / 2, r.y - r.h / 2, r.w, r.h}
 }
 
-rect_centered_in_rect :: proc(inner_rect, outer_rect: Rect) -> Rect {
+rect_centered_in_rect :: proc "contextless" (inner_rect, outer_rect: Rect) -> Rect {
     outer_center := vec2{outer_rect.w / 2, outer_rect.h/2}
     return Rect {
         outer_center.x - (inner_rect.w / 2),
@@ -157,7 +152,7 @@ rect_centered_in_rect :: proc(inner_rect, outer_rect: Rect) -> Rect {
     }
 }
 
-union_rect_i :: proc(r0, r1: Rect) -> Rect {
+union_rect_i :: proc "contextless" (r0, r1: Rect) -> Rect {
     // TODO: This seems kinda redundant. Optimize!
     bbox0 := rect_to_bbox(r0)
     bbox1 := rect_to_bbox(r1)
@@ -169,7 +164,7 @@ union_rect_i :: proc(r0, r1: Rect) -> Rect {
     })
 }
 
-union_rect_f :: proc(r0, r1: Rectf) -> Rectf {
+union_rect_f :: proc "contextless" (r0, r1: Rectf) -> Rectf {
     // TODO: This seems kinda redundant. Optimize!
     bbox0 := rect_to_bbox(r0)
     bbox1 := rect_to_bbox(r1)
@@ -193,7 +188,7 @@ Radix :: enum int {
     Hex = 16,
 }
 
-is_digit_in_radix :: proc(c: rune, radix: Radix) -> bool {
+is_digit_in_radix :: proc "contextless" (c: rune, radix: Radix) -> bool {
     result: bool
     switch radix {
     case .Binary:
@@ -203,20 +198,20 @@ is_digit_in_radix :: proc(c: rune, radix: Radix) -> bool {
     case .Decimal:
         result = c >= '0' && c <= '9'
     case .Hex:
-        result = unicode.is_digit(c) || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+        result = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
     }
     return result
 }
 
 
-wrap :: proc(x, y: $T) -> T
+wrap :: proc "contextless" (x, y: $T) -> T
 where intrinsics.type_is_integer(T), !intrinsics.type_is_array(T) 
 {
     res := x % y
     return res + y if res < 0 else res
 }
 
-bit_modify :: proc(bits: []u8, bit_idx: uint, set: bool) {
+bit_modify :: proc "contextless" (bits: []u8, #any_int bit_idx: uint, set: bool) {
     byte_idx := bit_idx / 8
     bit := bit_idx % 8
     if set {
@@ -226,9 +221,23 @@ bit_modify :: proc(bits: []u8, bit_idx: uint, set: bool) {
     }
 }
 
-bit_test :: proc(bits: []u8, bit_idx: uint) -> bool {
+bit_test :: proc "contextless" (bits: []u8, #any_int bit_idx: uint) -> bool {
     byte_idx := bit_idx / 8
     bit := bit_idx % 8
     return (bits[byte_idx] & (1 << bit)) != 0
 }
 
+time_sin :: proc "contextless" (
+    freq: f32 = 1.0,
+    min: f32 = 0.0,
+    max: f32 = 1.0) -> f32 
+{
+    duration := time.duration_seconds(time.tick_since({})) * cast(f64)freq
+    return normalize_to_range(
+        cast(f32)math.sin(duration * math.TAU),
+        -1.0,
+        1.0,
+        min,
+        max
+    )
+}
