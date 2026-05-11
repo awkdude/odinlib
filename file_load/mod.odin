@@ -2,10 +2,12 @@ package file_load
 
 import "../util"
 
+Pixmap :: util.Pixmap
+
 load_image :: proc(
     path: string,
     pixel_format: util.Pixel_Format,
-    allocator := context.allocator) -> (Pixmap, bool) 
+    allocator := context.allocator) -> (Pixmap, bool)
 {
     pixmap: Pixmap
     load_ok: bool

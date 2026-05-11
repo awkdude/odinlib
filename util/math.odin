@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 package util
 import "core:math"
 import "base:intrinsics"
@@ -25,28 +24,26 @@ vec2f   :: [2]f32
 vec3f   :: [3]f32
 mat3    :: matrix[3, 3]f32
 mat4    :: matrix[4, 4]f32
-Color_f :: [4]f32 // TODO: Remove
 Color3f :: [3]f32
 Color4f :: [4]f32
-
 
 normalize_to_range :: proc "contextless" (value, mini, maxi, minf, maxf: f32) -> f32 {
     return ((value - mini) / (maxi - mini)) * (maxf - minf) + minf;
 }
 
 point_in_rect_i :: proc "contextless" (p: vec2, rect: Rect) -> bool {
-    return p.x >= rect.x && p.x < (rect.x + rect.w) && 
+    return p.x >= rect.x && p.x < (rect.x + rect.w) &&
         p.y >= rect.y && p.y < (rect.y + rect.h)
 }
 
 point_in_rect_f :: proc "contextless" (p: vec2f, rect: Rectf) -> bool {
-    return p.x >= rect.x && p.x < (rect.x + rect.w) && 
+    return p.x >= rect.x && p.x < (rect.x + rect.w) &&
         p.y >= rect.y && p.y < (rect.y + rect.h)
 }
 
 point_in_rect :: proc {
     point_in_rect_i,
-    point_in_rect_f 
+    point_in_rect_f
 }
 
 dip_to_px :: proc "contextless" (dip, dots_per_inch: i32) -> i32 {
@@ -95,8 +92,8 @@ bbox_to_rect_f :: proc "contextless" (bbox: BBoxf) -> Rectf {
 }
 
 bbox_to_rect :: proc {
-    bbox_to_rect_i, 
-    bbox_to_rect_f, 
+    bbox_to_rect_i,
+    bbox_to_rect_f,
 }
 
 rect_to_bbox_i :: proc "contextless" (rect: Rect) -> BBox {
@@ -178,7 +175,7 @@ union_rect_f :: proc "contextless" (r0, r1: Rectf) -> Rectf {
 }
 
 union_rect :: proc {
-    union_rect_i, 
+    union_rect_i,
     union_rect_f,
 }
 
@@ -206,7 +203,7 @@ is_digit_in_radix :: proc "contextless" (c: rune, radix: Radix) -> bool {
 
 
 wrap :: proc "contextless" (x, y: $T) -> T
-where intrinsics.type_is_integer(T), !intrinsics.type_is_array(T) 
+where intrinsics.type_is_integer(T), !intrinsics.type_is_array(T)
 {
     res := x % y
     return res + y if res < 0 else res
@@ -231,7 +228,7 @@ bit_test :: proc "contextless" (bits: []u8, #any_int bit_idx: uint) -> bool {
 time_sin :: proc "contextless" (
     freq: f32 = 1.0,
     min: f32 = 0.0,
-    max: f32 = 1.0) -> f32 
+    max: f32 = 1.0) -> f32
 {
     duration := time.duration_seconds(time.tick_since({})) * cast(f64)freq
     return normalize_to_range(
@@ -242,249 +239,3 @@ time_sin :: proc "contextless" (
         max
     )
 }
-=======
-package util
-import "core:math"
-import "base:intrinsics"
-import "core:time"
-
-Rect :: struct {
-    x, y, w, h: i32,
-}
-
-Rectf :: struct {
-    x, y, w, h: f32,
-}
-
-BBox :: struct {
-    x0, y0, x1, y1 : i32,
-}
-
-BBoxf :: struct {
-    x0, y0, x1, y1 : f32,
-}
-
-vec2    :: [2]i32
-vec2f   :: [2]f32
-vec3f   :: [3]f32
-mat3    :: matrix[3, 3]f32
-mat4    :: matrix[4, 4]f32
-Color_f :: [4]f32 // TODO: Remove
-Color3f :: [3]f32
-Color4f :: [4]f32
-
-
-normalize_to_range :: proc "contextless" (value, mini, maxi, minf, maxf: f32) -> f32 {
-    return ((value - mini) / (maxi - mini)) * (maxf - minf) + minf;
-}
-
-point_in_rect_i :: proc "contextless" (p: vec2, rect: Rect) -> bool {
-    return p.x >= rect.x && p.x < (rect.x + rect.w) && 
-        p.y >= rect.y && p.y < (rect.y + rect.h)
-}
-
-point_in_rect_f :: proc "contextless" (p: vec2f, rect: Rectf) -> bool {
-    return p.x >= rect.x && p.x < (rect.x + rect.w) && 
-        p.y >= rect.y && p.y < (rect.y + rect.h)
-}
-
-point_in_rect :: proc {
-    point_in_rect_i,
-    point_in_rect_f 
-}
-
-dip_to_px :: proc "contextless" (dip, dots_per_inch: i32) -> i32 {
-    return i32(cast(f32)dip / 96.0 * cast(f32)dots_per_inch)
-}
-
-size_to_rect :: proc "contextless" (size: vec2) -> Rect {
-    return Rect { w=size.x, h=size.y }
-}
-
-scale_vec2_s :: proc "contextless" (v: vec2, s: f32) -> vec2 {
-    return vec2 {
-        cast(i32)(cast(f32)v.x * s),
-        cast(i32)(cast(f32)v.y * s),
-    }
-}
-
-scale_vec2_v :: proc "contextless" (v: vec2, sv: vec2f) -> vec2 {
-    return vec2 {
-        cast(i32)(cast(f32)v.x * sv.x),
-        cast(i32)(cast(f32)v.y * sv.y),
-    }
-}
-
-scale_vec2 :: proc {
-    scale_vec2_s,
-    scale_vec2_v,
-}
-
-pos_size_to_rect :: proc "contextless" (pos, size: vec2) -> Rect {
-    return Rect {x=pos.x, y=pos.y, w=size.x, h=size.y}
-}
-
-// bbox rect conversion {{{
-bbox_to_rect_i :: proc "contextless" (bbox: BBox) -> Rect {
-    return Rect {
-        x=min(bbox.x0, bbox.x1),
-        y=min(bbox.y0, bbox.y1),
-        w=math.abs(bbox.x1 - bbox.x0),
-        h=math.abs(bbox.y1 - bbox.y0),
-    }
-}
-
-bbox_to_rect_f :: proc "contextless" (bbox: BBoxf) -> Rectf {
-    return Rectf {
-        x=min(bbox.x0, bbox.x1),
-        y=min(bbox.y0, bbox.y1),
-        w=math.abs(bbox.x1 - bbox.x0),
-        h=math.abs(bbox.y1 - bbox.y0),
-    }
-}
-
-bbox_to_rect :: proc {
-    bbox_to_rect_i, 
-    bbox_to_rect_f, 
-}
-
-rect_to_bbox_i :: proc "contextless" (rect: Rect) -> BBox {
-    bbox := BBox {
-        x0=rect.x,
-        y0=rect.y,
-        x1=rect.x+rect.w,
-        y1=rect.y+rect.h,
-    }
-    if rect.w < 0 {
-        bbox.x0, bbox.x1 = bbox.x1, bbox.x0
-    }
-    if rect.h < 0 {
-        bbox.y0, bbox.y1 = bbox.y1, bbox.y0
-    }
-    return bbox
-}
-
-rect_to_bbox_f :: proc "contextless" (rect: Rectf) -> BBoxf {
-    bbox := BBoxf {
-        x0=rect.x,
-        y0=rect.y,
-        x1=rect.x+rect.w,
-        y1=rect.y+rect.h,
-    }
-    if rect.w < 0 {
-        bbox.x0, bbox.x1 = bbox.x1, bbox.x0
-    }
-    if rect.h < 0 {
-        bbox.y0, bbox.y1 = bbox.y1, bbox.y0
-    }
-    return bbox
-}
-
-rect_to_bbox :: proc  {
-    rect_to_bbox_i,
-    rect_to_bbox_f,
-}
-
-
-// }}}
-
-rect_to_centered :: proc "contextless" (r: Rect) -> Rect {
-    return Rect{r.x - r.w / 2, r.y - r.h / 2, r.w, r.h}
-}
-
-rect_centered_in_rect :: proc "contextless" (inner_rect, outer_rect: Rect) -> Rect {
-    outer_center := vec2{outer_rect.w / 2, outer_rect.h/2}
-    return Rect {
-        outer_center.x - (inner_rect.w / 2),
-        outer_center.y - (inner_rect.h / 2),
-        inner_rect.w,
-        inner_rect.h,
-    }
-}
-
-union_rect_i :: proc "contextless" (r0, r1: Rect) -> Rect {
-    // TODO: This seems kinda redundant. Optimize!
-    bbox0 := rect_to_bbox(r0)
-    bbox1 := rect_to_bbox(r1)
-    return bbox_to_rect(BBox {
-        x0=min(bbox0.x0, bbox1.x0),
-        y0=min(bbox0.y0, bbox1.y0),
-        x1=max(bbox0.x1, bbox1.x1),
-        y1=max(bbox0.y1, bbox1.y1),
-    })
-}
-
-union_rect_f :: proc "contextless" (r0, r1: Rectf) -> Rectf {
-    // TODO: This seems kinda redundant. Optimize!
-    bbox0 := rect_to_bbox(r0)
-    bbox1 := rect_to_bbox(r1)
-    return bbox_to_rect(BBoxf {
-        x0=min(bbox0.x0, bbox1.x0),
-        y0=min(bbox0.y0, bbox1.y0),
-        x1=max(bbox0.x1, bbox1.x1),
-        y1=max(bbox0.y1, bbox1.y1),
-    })
-}
-
-union_rect :: proc {
-    union_rect_i, 
-    union_rect_f,
-}
-
-Radix :: enum int {
-    Binary = 2,
-    Octal = 8,
-    Decimal = 10,
-    Hex = 16,
-}
-
-is_digit_in_radix :: proc "contextless" (c: rune, radix: Radix) -> bool {
-    result: bool
-    switch radix {
-    case .Binary:
-        result = c == '0' || c == '1'
-    case .Octal:
-        result = c >= '0' && c <= '7'
-    case .Decimal:
-        result = c >= '0' && c <= '9'
-    case .Hex:
-        result = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
-    }
-    return result
-}
-
-
-wrap :: proc "contextless" (x, y: $T) -> T
-where intrinsics.type_is_integer(T), !intrinsics.type_is_array(T) 
-{
-    res := x % y
-    return res + y if res < 0 else res
-}
-
-bit_modify :: proc "contextless" (bits: []u8, bit_idx: uint, set: bool) {
-    byte_idx := bit_idx / 8
-    bit := bit_idx % 8
-    if set {
-        bits[byte_idx] |= (1 << bit)
-    } else {
-        bits[byte_idx] &= ~(1 << bit)
-    }
-}
-
-bit_test :: proc "contextless" (bits: []u8, bit_idx: uint) -> bool {
-    byte_idx := bit_idx / 8
-    bit := bit_idx % 8
-    return (bits[byte_idx] & (1 << bit)) != 0
-}
-
-time_sin :: proc(freq: f32 = 1.0, min: f32 = 0.0, max: f32 = 1.0) -> f32 {
-    duration := time.duration_seconds(time.tick_since({})) * cast(f64)freq
-    return normalize_to_range(
-        cast(f32)math.sin(duration * math.TAU),
-        -1.0,
-        1.0,
-        min,
-        max
-    )
-}
->>>>>>> 9a6312c68629e59c947d5fb2a754f9f25956a9f0
