@@ -53,7 +53,7 @@ is_png :: proc(path: string) -> bool {
 
 load_png :: proc(
     path: string,
-    pixel_format: util.Pixel_Format = util.DEFAULT_PIXEL_FORMAT,
+    pixel_format: util.Pixel_Format,
     allocator := context.allocator) -> (util.Pixmap, bool) #optional_ok
 {
     // {{{

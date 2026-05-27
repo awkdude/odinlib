@@ -19,6 +19,24 @@ BBoxf :: struct {
     x0, y0, x1, y1 : f32,
 }
 
+rect_to_f :: proc "contextless" (r: Rect) -> Rectf {
+	return Rectf {
+		x=cast(f32)r.x,
+		y=cast(f32)r.y,
+		w=cast(f32)r.w,
+		h=cast(f32)r.h,
+	}
+}
+
+rect_from_f :: proc "contextless" (r: Rectf) -> Rect {
+	return Rect {
+		x=cast(i32)r.x,
+		y=cast(i32)r.y,
+		w=cast(i32)r.w,
+		h=cast(i32)r.h,
+	}
+}
+
 vec2    :: [2]i32
 vec2f   :: [2]f32
 vec3f   :: [3]f32
@@ -136,8 +154,17 @@ rect_to_bbox :: proc  {
 
 // }}}
 
-rect_to_centered :: proc "contextless" (r: Rect) -> Rect {
+rect_to_centered_i :: proc "contextless" (r: Rect) -> Rect {
     return Rect{r.x - r.w / 2, r.y - r.h / 2, r.w, r.h}
+}
+
+rect_to_centered_f :: proc "contextless" (r: Rectf) -> Rectf {
+    return Rectf{r.x - r.w / 2, r.y - r.h / 2, r.w, r.h}
+}
+
+rect_to_centered :: proc {
+	rect_to_centered_i,
+	rect_to_centered_f,
 }
 
 rect_centered_in_rect :: proc "contextless" (inner_rect, outer_rect: Rect) -> Rect {
@@ -186,6 +213,7 @@ Radix :: enum int {
     Hex = 16,
 }
 
+// Returns true if character is a valid digit of radix
 is_digit_in_radix :: proc "contextless" (c: rune, radix: Radix) -> bool {
     result: bool
     switch radix {
@@ -209,6 +237,7 @@ where intrinsics.type_is_integer(T), !intrinsics.type_is_array(T)
     return res + y if res < 0 else res
 }
 
+// Set bit in bit array
 bit_modify :: proc "contextless" (bits: []u8, #any_int bit_idx: uint, set: bool) {
     byte_idx := bit_idx / 8
     bit := bit_idx % 8
@@ -219,20 +248,23 @@ bit_modify :: proc "contextless" (bits: []u8, #any_int bit_idx: uint, set: bool)
     }
 }
 
+// Test if bit is set at bit index
 bit_test :: proc "contextless" (bits: []u8, #any_int bit_idx: uint) -> bool {
     byte_idx := bit_idx / 8
     bit := bit_idx % 8
     return (bits[byte_idx] & (1 << bit)) != 0
 }
 
+// TODO: rename something better
 time_sin :: proc "contextless" (
-    freq: f32 = 1.0,
+	freq: f32 = 1.0,
     min: f32 = 0.0,
-    max: f32 = 1.0) -> f32
+    max: f32 = 1.0,
+    phase_shift: f32 = 0.0) -> f32
 {
     duration := time.duration_seconds(time.tick_since({})) * cast(f64)freq
     return normalize_to_range(
-        cast(f32)math.sin(duration * math.TAU),
+        cast(f32)math.sin(duration * math.TAU + cast(f64)phase_shift),
         -1.0,
         1.0,
         min,

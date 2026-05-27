@@ -63,7 +63,7 @@ Pixmap :: struct #all_or_none {
 // Allocate pixmap
 make_pixmap :: proc(
     w, h: i32,
-    pixel_format: Pixel_Format = DEFAULT_PIXEL_FORMAT,
+    pixel_format: Pixel_Format,
     bytes_per_pixel: i32 = 4,
     allocator := context.allocator) -> (Pixmap, bool) #optional_ok
 {
@@ -98,7 +98,7 @@ DEFAULT_PIXEL_FORMAT :: Pixel_Format {
 
 pack_color_4b :: #force_inline proc(
     rgba: Color4b,
-    format: Pixel_Format = DEFAULT_PIXEL_FORMAT) -> ColorU32
+    format: Pixel_Format) -> ColorU32
 {
     color_u32: ColorU32
     color_u32 |= cast(u32)(rgba.r) << format.r
@@ -113,7 +113,7 @@ ColorU32 :: u32
 
 pack_color_4f :: proc "contextless" (
 	color: Color4f,
-	format: Pixel_Format = DEFAULT_PIXEL_FORMAT) -> ColorU32
+	format: Pixel_Format) -> ColorU32
 {
     color_u32: ColorU32
     color_u32 |= ((cast(u32)math.round(color.r * 255.0)) & 0xff) << format.r
@@ -131,7 +131,7 @@ pack_color :: proc {
 
 unpack_color_4b :: proc "contextless" (
 	color: ColorU32,
-	format: Pixel_Format = DEFAULT_PIXEL_FORMAT) -> Color4b
+	format: Pixel_Format) -> Color4b
 {
 	return Color4b {
 		cast(u8)((color >> format.r) & 0xff),
@@ -141,15 +141,22 @@ unpack_color_4b :: proc "contextless" (
 	}
 }
 
+unpack_alpha_4b :: #force_inline proc "contextless" (
+    color: ColorU32,
+    format: Pixel_Format) -> u8
+{
+    return cast(u8)((color >> format.a) & 0xff)
+}
+
 unpack_color_4f :: proc "contextless" (
 	color: ColorU32,
-	format: Pixel_Format = DEFAULT_PIXEL_FORMAT) -> Color4f
+	format: Pixel_Format) -> Color4f
 {
     color4f: Color4f = {
-        cast(f32)(((color >> format.r) & 0xff) / 255.0),
-        cast(f32)(((color >> format.g) & 0xff) / 255.0),
-        cast(f32)(((color >> format.b) & 0xff) / 255.0),
-        cast(f32)(((color >> format.a) & 0xff) / 255.0),
+        (cast(f32)((color >> format.r) & 0xff) / 255.0),
+        (cast(f32)((color >> format.g) & 0xff) / 255.0),
+        (cast(f32)((color >> format.b) & 0xff) / 255.0),
+        (cast(f32)((color >> format.a) & 0xff) / 255.0),
     }
     return color4f
 }

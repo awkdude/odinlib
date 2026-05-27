@@ -14,15 +14,15 @@ Window_Event :: struct {
         key: struct {
             keycode: u32,
             pressed, repeated: bool,
-        },
-        char_codepoint: rune,
+        } `raw_union_tag:"type=.Key"`,
+        char_codepoint: rune  `raw_union_tag:"type=.Char_Input"`,
         mouse_button: struct {
             button: Mouse_Button,
             pressed: bool,
             position: vec2,
-        },
+        }  `raw_union_tag:"type=.Mouse_Button"`,
         vec2: vec2,
-        files: []string,
+        files: []string `raw_union_tag:"type=.Drop"`,
     },
 }
 
