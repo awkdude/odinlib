@@ -140,7 +140,7 @@ load_png :: proc(
         case tRNS:
             // Discard if not color type is not indexed-color
             if color_type != 3 {
-                os.seek(file, i64(chunk_length), .Current)
+                os.seek(file, cast(i64)chunk_length, .Current)
             } else {
                 for i in 0..<chunk_length {
                     os.read_ptr(file, &color_lookup_table[i], 4)
@@ -213,7 +213,7 @@ png_unfilter_bytes :: proc(
     left_byte_i := -bytes_per_pixel
     top_byte_i := -stride - 1
     top_left_byte_i := -stride - bytes_per_pixel - 1
-    for scanline in 0..<int(height) {
+    for scanline in 0..<cast(int)height {
         filter_byte := png_bytes[byte_i]
         byte_i += 1
         left_byte_i += 1

@@ -45,7 +45,16 @@ mat4    :: matrix[4, 4]f32
 Color3f :: [3]f32
 Color4f :: [4]f32
 
-normalize_to_range :: proc "contextless" (value, mini, maxi, minf, maxf: f32) -> f32 {
+
+perp :: proc "contextless" (v: $T/[2]$E) -> T
+where intrinsics.type_is_numeric(E) #no_bounds_check
+{
+	return {-v.y, v.x}
+}
+
+normalize_to_range :: proc "contextless" (value, mini, maxi, minf, maxf: $T) -> T
+where intrinsics.type_is_float(T)
+{
     return ((value - mini) / (maxi - mini)) * (maxf - minf) + minf;
 }
 
@@ -204,6 +213,13 @@ union_rect_f :: proc "contextless" (r0, r1: Rectf) -> Rectf {
 union_rect :: proc {
     union_rect_i,
     union_rect_f,
+}
+
+rects_collide :: proc "contextless" (r0, r1: Rectf) -> bool {
+	return r0.x + r0.w >= r1.x &&
+		r0.x < r1.x + r1.w &&
+		r0.y + r0.h >= r1.y &&
+		r0.y < r1.y + r1.h
 }
 
 Radix :: enum int {
