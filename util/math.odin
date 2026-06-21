@@ -40,17 +40,19 @@ rect_from_f :: proc "contextless" (r: Rectf) -> Rect {
 vec2    :: [2]i32
 vec2f   :: [2]f32
 vec3f   :: [3]f32
+mat2    :: matrix[2, 2]f32
 mat3    :: matrix[3, 3]f32
 mat4    :: matrix[4, 4]f32
 Color3f :: [3]f32
 Color4f :: [4]f32
 
+PERP :: mat2{ 0, -1, 1, 0 }
 
-perp :: proc "contextless" (v: $T/[2]$E) -> T
-where intrinsics.type_is_numeric(E) #no_bounds_check
-{
-	return {-v.y, v.x}
-}
+// perp :: proc "contextless" (v: $T/[2]$E) -> T
+// where intrinsics.type_is_numeric(E) #no_bounds_check
+// {
+// 	return {-v.y, v.x}
+// }
 
 normalize_to_range :: proc "contextless" (value, mini, maxi, minf, maxf: $T) -> T
 where intrinsics.type_is_float(T)

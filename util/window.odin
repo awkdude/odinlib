@@ -29,6 +29,7 @@ Window_Event :: struct {
 Window_Event_Type :: enum {
     Key,
     Char_Input,
+    // Window client area dimensions
     Window_Resize,
     Mouse_Button,
     Mouse_Move,

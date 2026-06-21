@@ -139,11 +139,12 @@ load_png :: proc(
             input_offset += cast(int)chunk_length
         case tRNS:
             // Discard if not color type is not indexed-color
+            log.debug("Color type: ", color_type)
             if color_type != 3 {
                 os.seek(file, cast(i64)chunk_length, .Current)
             } else {
                 for i in 0..<chunk_length {
-                    os.read_ptr(file, &color_lookup_table[i], 4)
+                    os.read_ptr(file, &color_lookup_table[i].a, 1)
                 }
             }
         case bKGD:
