@@ -51,36 +51,42 @@ set_input_state_from_event :: proc "contextless" (
 		}
 	case .Mouse_Wheel:
 		input.mouse_wheel_delta += event.vec2
+	case .Lose_Focus:
+		input^ = {}
 	}
 }
 
 Pixmap :: struct #all_or_none {
     pixels: rawptr,
-    w, h, bytes_per_pixel, pitch: i32,
-    pixel_format: Pixel_Format,
+    w, h, pitch: i32,
+    format: Pixel_Format,
 }
 
 // Allocate pixmap
 make_pixmap :: proc(
     w, h: i32,
-    pixel_format: Pixel_Format,
-    bytes_per_pixel: i32 = 4,
+    format: Pixel_Format,
     allocator := context.allocator) -> (Pixmap, bool) #optional_ok
 {
-    pixels, err := mem.alloc(cast(int)(w * h * bytes_per_pixel), allocator=allocator)
+	assert(format.bytes_per_pixel == 1 || format.bytes_per_pixel == 4)
+    pixels, err := mem.alloc(cast(int)(w * h * format.bytes_per_pixel), allocator=allocator)
     return Pixmap {
         pixels=pixels,
         w=w,
         h=h,
-        pixel_format=pixel_format,
-        pitch=w*bytes_per_pixel,
-        bytes_per_pixel=bytes_per_pixel
-    }, err == .None
+        pitch=w*format.bytes_per_pixel,
+        format=format,
+    }, err == nil
+}
+
+Pixel_Format :: struct {
+	using layout: Pixel_Layout,
+	bytes_per_pixel: i32,
 }
 
 // Defines bit shift for each color channel
 // TODO: Maybe rename to Pixel_Layout?
-Pixel_Format :: struct {
+Pixel_Layout :: struct {
     r: u8,
     g: u8,
     b: u8,
@@ -89,14 +95,14 @@ Pixel_Format :: struct {
 
 // BGRA (from lowest to highest shift)
 // Used for Win32 DIB
-DEFAULT_PIXEL_FORMAT :: Pixel_Format {
+DEFAULT_PIXEL_LAYOUT :: Pixel_Layout {
     r=16,
     g=8,
     b=0,
     a=24,
 }
 
-pack_color_4b :: #force_inline proc(
+pack_color_4b :: #force_inline proc "contextless" (
     rgba: Color4b,
     format: Pixel_Format) -> ColorU32
 {
@@ -181,6 +187,29 @@ wait_frame_interval :: proc "contextless"(
         time.sleep(sleep_time * time.Microsecond)
     }
     previous_frame_tick^ = now
+}
+
+Ring_Buffer :: struct($T: typeid) {
+	buffer: []T,
+	head, tail: int,
+}
+
+ring_buffer_push :: proc(rb: ^Ring_Buffer($T), elem: T) {
+	rb.buffer[rb.tail] = elem
+	rb.tail = (rb.tail + 1) % len(rb.buffer)
+	if rb.tail == rb.head {
+		rb.head = (rb.head + 1) % len(rb.buffer)
+	}
+}
+
+ring_buffer_clear :: proc(rb: ^Ring_Buffer($T)) {
+	mem.zero_slice(rb.buffer)
+	rb.head = 0
+	rb.tail = 0
+}
+
+ring_buffer_pop :: proc(rb: ^Ring_Buffer($T)) -> (T, bool) {
+	// TODO:
 }
 
 // Sound_Resolution :: enum i32 {

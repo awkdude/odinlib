@@ -109,7 +109,7 @@ read_pixels_16 :: proc(file: ^os.File, pixmap: ^Pixmap) {
 	                8 * u8(pixel & 0x1f),
 	                0xff,
 	            },
-	            pixmap.pixel_format
+	            pixmap.format
             )
         }
         row -= pixmap.w
@@ -126,7 +126,7 @@ read_pixels_24 :: proc(file: ^os.File, pixmap: ^Pixmap) {
             os.read(file, pixel[:])
             pixels[row + x] = util.pack_color(
             	Color4b{pixel[2], pixel[1], pixel[0], 0xff},
-             	pixmap.pixel_format
+             	pixmap.format
             )
             // draw.plot_pixel(pixmap, x, y, draw.color(pixel[2], pixel[1], pixel[0]))
         }
@@ -150,7 +150,7 @@ read_pixels_32 :: proc(file: ^os.File, pixmap: ^Pixmap) {
                 pixel[1],
                 pixel[0],
                 pixel[3],
-            }, pixmap.pixel_format)
+            }, pixmap.format)
         }
         row -= pixmap.w
     }

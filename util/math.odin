@@ -11,8 +11,12 @@ Rectf :: struct {
     x, y, w, h: f32,
 }
 
+// TODO: remove x[0, 1], y[0, 1] struct variant
 BBox :: struct {
-    x0, y0, x1, y1 : i32,
+    using _: struct #raw_union {
+    	using _: struct{x0, y0, x1, y1 : i32,},
+    	using _: struct{min, max: vec2},
+    },
 }
 
 BBoxf :: struct {
@@ -53,6 +57,15 @@ PERP :: mat2{ 0, -1, 1, 0 }
 // {
 // 	return {-v.y, v.x}
 // }
+
+color4b_to_4f :: proc(color4b: Color4b) -> Color4f {
+	return Color4f {
+		cast(f32)color4b.r / 255.0,
+		cast(f32)color4b.g / 255.0,
+		cast(f32)color4b.b / 255.0,
+		cast(f32)color4b.a / 255.0,
+	}
+}
 
 normalize_to_range :: proc "contextless" (value, mini, maxi, minf, maxf: $T) -> T
 where intrinsics.type_is_float(T)
@@ -217,6 +230,19 @@ union_rect :: proc {
     union_rect_f,
 }
 
+intersection_rect :: proc "contextless" (r0, r1: Rect) -> Rect {
+    bbox0 := rect_to_bbox(r0)
+    bbox1 := rect_to_bbox(r1)
+    return bbox_to_rect(intersection_bbox(bbox0, bbox1))
+}
+
+intersection_bbox :: proc "contextless" (b0, b1: BBox) -> BBox {
+    bbox: BBox
+    bbox.min=vec2{max(b0.min.x, b1.min.x), max(b0.min.y, b1.min.y)}
+    bbox.max=vec2{min(b0.max.x, b1.max.x), min(b0.max.y, b1.max.y)}
+    return bbox
+}
+
 rects_collide :: proc "contextless" (r0, r1: Rectf) -> bool {
 	return r0.x + r0.w >= r1.x &&
 		r0.x < r1.x + r1.w &&
@@ -271,6 +297,12 @@ bit_test :: proc "contextless" (bits: []u8, #any_int bit_idx: uint) -> bool {
     byte_idx := bit_idx / 8
     bit := bit_idx % 8
     return (bits[byte_idx] & (1 << bit)) != 0
+}
+
+// Returns 0 if val < period/2 else 1
+// Useful for flashing graphics
+blink_state :: proc "contextless" (#any_int val, period: i32) -> i32 {
+	return 1 if (val % period) >= (period / 2) else 0
 }
 
 // TODO: rename something better

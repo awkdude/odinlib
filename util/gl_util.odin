@@ -338,14 +338,14 @@ create_texture_from_pixmap :: proc(
     gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
     tex_format: i32
     pixmap_format: u32
-    if pixmap.bytes_per_pixel == 1 {
+    if pixmap.format.bytes_per_pixel == 1 {
         tex_format = gl.RED
         pixmap_format = gl.RED
-    } else if pixmap.bytes_per_pixel == 4 {
+    } else if pixmap.format.bytes_per_pixel == 4 {
         tex_format = gl.RGBA8
         pixmap_format = gl.BGRA
     } else {
-        log.panicf("Invalid BPP provided (%v)", pixmap.bytes_per_pixel)
+        log.panicf("Invalid BPP provided (%v)", pixmap.format.bytes_per_pixel)
     }
     min_filter := cast(i32)(gl.LINEAR if tex_options.min_filter_linear else gl.NEAREST)
     max_filter := cast(i32)(gl.LINEAR if tex_options.max_filter_linear else gl.NEAREST)
