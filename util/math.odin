@@ -1,7 +1,16 @@
 package util
 import "core:math"
+import "core:math/fixed"
 import "base:intrinsics"
 import "core:time"
+
+fixed_int :: #force_inline proc "contextless" (
+    fp: $T/fixed.Fixed($Backing, $Fraction_Width)) -> i32 
+    where intrinsics.type_is_integer(Backing),
+    intrinsics.type_is_integer(Fraction_Width)
+{
+    return (i32)(fp.i >> Fraction_Width)
+}
 
 Rect :: struct {
     x, y, w, h: i32,
@@ -174,8 +183,6 @@ rect_to_bbox :: proc  {
     rect_to_bbox_i,
     rect_to_bbox_f,
 }
-
-
 // }}}
 
 rect_to_centered_i :: proc "contextless" (r: Rect) -> Rect {
@@ -302,7 +309,7 @@ bit_test :: proc "contextless" (bits: []u8, #any_int bit_idx: uint) -> bool {
 // Returns 0 if val < period/2 else 1
 // Useful for flashing graphics
 blink_state :: proc "contextless" (#any_int val, period: i32) -> i32 {
-	return 1 if (val % period) >= (period / 2) else 0
+	return 1 if ((val % period) >= (period / 2)) else 0
 }
 
 // TODO: rename something better

@@ -58,7 +58,9 @@ set_input_state_from_event :: proc "contextless" (
 
 Pixmap :: struct #all_or_none {
     pixels: rawptr,
-    w, h, pitch: i32,
+    w, h: i32,
+    // bytes in row of pixels
+    pitch: i32,
     format: Pixel_Format,
 }
 
@@ -69,7 +71,16 @@ make_pixmap :: proc(
     allocator := context.allocator) -> (Pixmap, bool) #optional_ok
 {
 	assert(format.bytes_per_pixel == 1 || format.bytes_per_pixel == 4)
-    pixels, err := mem.alloc(cast(int)(w * h * format.bytes_per_pixel), allocator=allocator)
+	pitch := w*format.bytes_per_pixel
+	mod_16 := pitch % 16
+	if mod_16 != 0 {
+		pitch += 16 - mod_16
+	}
+    pixels, err := mem.alloc(
+    	cast(int)(pitch * h),
+     	alignment=16,
+      	allocator=allocator
+    )
     return Pixmap {
         pixels=pixels,
         w=w,
@@ -85,7 +96,6 @@ Pixel_Format :: struct {
 }
 
 // Defines bit shift for each color channel
-// TODO: Maybe rename to Pixel_Layout?
 Pixel_Layout :: struct {
     r: u8,
     g: u8,

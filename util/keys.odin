@@ -44,6 +44,10 @@ KEY_W         :: cast(u32)0x57
 KEY_X         :: cast(u32)0x58
 KEY_Y         :: cast(u32)0x59
 KEY_Z         :: cast(u32)0x5a
+KEY_MULTIPLY  :: cast(u32)0x6a
+KEY_ADD       :: cast(u32)0x6b
+KEY_SUBTRACT  :: cast(u32)0x6d
+KEY_DIVIDE    :: cast(u32)0x6f
 KEY_F1        :: cast(u32)0x70
 KEY_F2        :: cast(u32)0x71
 KEY_F3        :: cast(u32)0x72
