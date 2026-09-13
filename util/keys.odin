@@ -66,3 +66,7 @@ KEY_LCONTROL  :: cast(u32)0xa2
 KEY_RCONTROL  :: cast(u32)0xa3
 KEY_LALT      :: cast(u32)0xa4
 KEY_RALT      :: cast(u32)0xa5
+// NR meaning Number Row
+KEY_NR_EQUAL  :: cast(u32)0xbb
+KEY_NR_PLUS   :: KEY_NR_EQUAL
+KEY_NR_MINUS  :: cast(u32)0xbd

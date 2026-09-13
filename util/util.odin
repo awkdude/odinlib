@@ -10,14 +10,22 @@ import "base:runtime"
 
 Keyboard_State :: [32]u8
 
+Modifier_Key :: enum {
+    Shift,
+    Control,
+    Alt,
+}
+
 // Used to represent color using RGBA, 8 bits per channel.
 // Must be converted to ColorU32 when drawing on framebuffer.
 Color4b :: [4]u8
 
 Input_State :: struct {
-    keyboard: Keyboard_State,
-    mouse_position: vec2,
-    mouse_buttons: bit_set[Mouse_Button],
+    using persistent: struct {
+        keyboard: Keyboard_State,
+        mouse_position: vec2,
+        mouse_buttons: bit_set[Mouse_Button],
+    },
     // This struct should be cleared at end of every frame
     using transient: struct {
         keys_pressed, keys_released: Keyboard_State,
@@ -25,6 +33,38 @@ Input_State :: struct {
         buttons_pressed, buttons_released: bit_set[Gamepad_Button],
     },
     gamepad: Gamepad_State,
+}
+
+set_axes_buttons :: proc "contextless" (
+    input: ^Input_State,
+    stick_threshold, trigger_threshold: f32)
+{
+    if input.gamepad.axes[.LEFT_X] <= -stick_threshold {
+        input.gamepad.buttons += {.LEFT_X_LEFT}
+    } else if input.gamepad.axes[.LEFT_X] >= stick_threshold {
+        input.gamepad.buttons += {.LEFT_X_RIGHT}
+    }
+    if input.gamepad.axes[.RIGHT_X] <= -stick_threshold {
+        input.gamepad.buttons += {.RIGHT_X_RIGHT}
+    } else if input.gamepad.axes[.RIGHT_X] >= stick_threshold {
+        input.gamepad.buttons += {.RIGHT_X_RIGHT}
+    }
+    if input.gamepad.axes[.LEFT_Y] <= -stick_threshold {
+        input.gamepad.buttons += {.LEFT_Y_UP}
+    } else if input.gamepad.axes[.LEFT_Y] >= stick_threshold {
+        input.gamepad.buttons += {.LEFT_Y_DOWN}
+    }
+    if input.gamepad.axes[.RIGHT_Y] <= -stick_threshold {
+        input.gamepad.buttons += {.RIGHT_Y_UP}
+    } else if input.gamepad.axes[.RIGHT_Y] >= stick_threshold {
+        input.gamepad.buttons += {.RIGHT_Y_DOWN}
+    }
+    if input.gamepad.axes[.TRIGGER_LEFT] >= trigger_threshold {
+        input.gamepad.buttons += {.TRIGGER_LEFT}
+    }
+    if input.gamepad.axes[.TRIGGER_RIGHT] >= trigger_threshold {
+        input.gamepad.buttons += {.TRIGGER_RIGHT}
+    }
 }
 
 set_input_state_from_event :: proc "contextless" (
@@ -70,22 +110,23 @@ make_pixmap :: proc(
     format: Pixel_Format,
     allocator := context.allocator) -> (Pixmap, bool) #optional_ok
 {
+    ROW_ALIGNMENT :: 16
 	assert(format.bytes_per_pixel == 1 || format.bytes_per_pixel == 4)
 	pitch := w*format.bytes_per_pixel
-	mod_16 := pitch % 16
-	if mod_16 != 0 {
-		pitch += 16 - mod_16
+	mod_align := pitch % ROW_ALIGNMENT
+	if mod_align != 0 {
+		pitch += ROW_ALIGNMENT - mod_align
 	}
     pixels, err := mem.alloc(
     	cast(int)(pitch * h),
-     	alignment=16,
+     	alignment=ROW_ALIGNMENT,
       	allocator=allocator
     )
     return Pixmap {
         pixels=pixels,
         w=w,
         h=h,
-        pitch=w*format.bytes_per_pixel,
+        pitch=pitch,
         format=format,
     }, err == nil
 }
@@ -112,6 +153,11 @@ DEFAULT_PIXEL_LAYOUT :: Pixel_Layout {
     a=24,
 }
 
+DEFAULT_PIXEL_FORMAT :: Pixel_Format {
+    layout=DEFAULT_PIXEL_LAYOUT,
+    bytes_per_pixel=4,
+}
+
 pack_color_4b :: #force_inline proc "contextless" (
     rgba: Color4b,
     format: Pixel_Format) -> ColorU32
@@ -132,10 +178,12 @@ pack_color_4f :: proc "contextless" (
 	format: Pixel_Format) -> ColorU32
 {
     color_u32: ColorU32
-    color_u32 |= ((cast(u32)math.round(color.r * 255.0)) & 0xff) << format.r
-    color_u32 |= ((cast(u32)math.round(color.g * 255.0)) & 0xff) << format.g
-    color_u32 |= ((cast(u32)math.round(color.b * 255.0)) & 0xff) << format.b
-    color_u32 |= ((cast(u32)math.round(color.a * 255.0)) & 0xff) << format.a
+    color := color
+    color *= 255.0
+    color_u32 |= ((cast(u32)math.round(color.r)) & 0xff) << format.r
+    color_u32 |= ((cast(u32)math.round(color.g)) & 0xff) << format.g
+    color_u32 |= ((cast(u32)math.round(color.b)) & 0xff) << format.b
+    color_u32 |= ((cast(u32)math.round(color.a)) & 0xff) << format.a
 
     return color_u32
 }

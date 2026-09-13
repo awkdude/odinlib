@@ -28,8 +28,12 @@ BBox :: struct {
     },
 }
 
+// TODO: remove x[0, 1], y[0, 1] struct variant
 BBoxf :: struct {
-    x0, y0, x1, y1 : f32,
+    using _: struct #raw_union {
+    	using _: struct{x0, y0, x1, y1 : f32,},
+    	using _: struct{min, max: vec2f},
+    },
 }
 
 rect_to_f :: proc "contextless" (r: Rect) -> Rectf {
@@ -48,6 +52,19 @@ rect_from_f :: proc "contextless" (r: Rectf) -> Rect {
 		w=cast(i32)r.w,
 		h=cast(i32)r.h,
 	}
+}
+
+bbox_from_f :: proc "contextless" (b: BBoxf) -> BBox {
+    return BBox {
+        min={
+            cast(i32)b.min.x,
+            cast(i32)b.min.y,
+        },
+        max={
+            cast(i32)b.max.x,
+            cast(i32)b.max.y,
+        },
+    }
 }
 
 vec2    :: [2]i32
@@ -308,6 +325,7 @@ bit_test :: proc "contextless" (bits: []u8, #any_int bit_idx: uint) -> bool {
 
 // Returns 0 if val < period/2 else 1
 // Useful for flashing graphics
+// TODO: Give better name
 blink_state :: proc "contextless" (#any_int val, period: i32) -> i32 {
 	return 1 if ((val % period) >= (period / 2)) else 0
 }
