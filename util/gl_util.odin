@@ -184,13 +184,13 @@ compile_shader :: proc(type: Shader_Type, source: string) -> (u32, Shader_Error)
 // }}}
 }
 
-@(private)
-location :: #force_inline proc(shader: u32, name: string) -> i32 {
-    return gl.GetUniformLocation(shader, strings.unsafe_string_to_cstring(name))
+@(private="file")
+location :: #force_inline proc(shader: u32, name: cstring) -> i32 {
+    return gl.GetUniformLocation(shader, name) 
 }
 
 // shader uniform procs {{{
-shader_uniform_int :: #force_inline proc(shader: u32, name: string, #any_int v: i32) {
+shader_uniform_int :: #force_inline proc(shader: u32, name: cstring, #any_int v: i32) {
     gl.Uniform1i(location(shader, name), v)
 }
 
@@ -200,44 +200,44 @@ shader_uniform_int :: #force_inline proc(shader: u32, name: string, #any_int v: 
 // }
 
 @(private)
-shader_uniform_ivec :: #force_inline proc(shader: u32, name: string, v: []i32) {
+shader_uniform_ivec :: #force_inline proc(shader: u32, name: cstring, v: []i32) {
     gl.Uniform1iv(location(shader, name), cast(i32)len(v), raw_data(v))
 }
 
 @(private)
-shader_uniform_float :: #force_inline proc(shader: u32, name: string, v: f32) {
+shader_uniform_float :: #force_inline proc(shader: u32, name: cstring, v: f32) {
     gl.Uniform1f(location(shader, name), v)
 }
 
 @(private)
-shader_uniform_vec3 :: #force_inline proc(shader: u32, name: string, v: [3]f32) {
+shader_uniform_vec3 :: #force_inline proc(shader: u32, name: cstring, v: [3]f32) {
     v := v
     gl.Uniform3fv(location(shader, name), 1, raw_data(v[:]))
 }
 
 @(private)
-shader_uniform_vec4 :: #force_inline proc(shader: u32, name: string, v: [4]f32) {
+shader_uniform_vec4 :: #force_inline proc(shader: u32, name: cstring, v: [4]f32) {
     v := v
     gl.Uniform4fv(location(shader, name), 1, raw_data(v[:]))
 }
 
 @(private)
-shader_uniform_mat3 :: #force_inline proc(shader: u32, name: string, m: ^matrix[3, 3]f32) {
+shader_uniform_mat3 :: #force_inline proc(shader: u32, name: cstring, m: ^matrix[3, 3]f32) {
     gl.UniformMatrix3fv(
         location(shader, name),
         1,
         false,
-        linalg.matrix_to_ptr(m)
+        transmute(^f32)m
     )
 }
 
 @(private)
-shader_uniform_mat4 :: #force_inline proc(shader: u32, name: string, m: ^matrix[4, 4]f32) {
+shader_uniform_mat4 :: #force_inline proc(shader: u32, name: cstring, m: ^matrix[4, 4]f32) {
     gl.UniformMatrix4fv(
         location(shader, name),
         1,
         false,
-        linalg.matrix_to_ptr(m)
+        transmute(^f32)m
     )
 }
 // }}}
@@ -335,6 +335,7 @@ create_texture_from_pixmap :: proc(
     tex_id: u32
     gl.GenTextures(1, &tex_id)
     gl.BindTexture(gl.TEXTURE_2D, tex_id)
+    // FIXME: needs to know pitch of pixmap
     gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
     tex_format: i32
     pixmap_format: u32

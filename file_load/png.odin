@@ -12,6 +12,13 @@ import "core:log"
 import "core:c"
 import "core:compress/zlib"
 
+// Set true to log
+when false { 
+    png_debugf :: log.debugf
+} else {
+    png_debugf :: proc(_: string, _: ..any, location := #caller_location) {}
+}
+
 Color4b :: util.Color4b
 ColorU32 :: util.ColorU32
 
@@ -85,7 +92,7 @@ load_png :: proc(
         bytes_per_pixel = 4
     }
     output_bufsize := uint(width * height * bytes_per_pixel + height)
-    log.debugf(
+    png_debugf(
     "IHDR (13 bytes)\n\tWidth: %d\n\tHeight: %d\n\tBit depth: %d\n\tColor type: " +
            "%s\n\tInterlace method: %d\n",
            width,
@@ -121,7 +128,7 @@ load_png :: proc(
         mem.copy(raw_data(&str), rawptr(&chunk_type), 4)
         chunk_length = bits.to_be_u32(chunk_length)
         chunk_type = bits.to_be_u32(chunk_type)
-        log.debugf("Type: %s, Length: %d\n", str, chunk_length)
+        png_debugf("Type: %s, Length: %d\n", str, chunk_length)
         switch chunk_type {
         case PLTE:
             entry: [4]u8
@@ -139,7 +146,7 @@ load_png :: proc(
             input_offset += cast(int)chunk_length
         case tRNS:
             // Discard if not color type is not indexed-color
-            log.debug("Color type: ", color_type)
+            png_debugf("Color type: %v", color_type)
             if color_type != 3 {
                 os.seek(file, cast(i64)chunk_length, .Current)
             } else {
@@ -168,7 +175,7 @@ load_png :: proc(
                 b = color_lookup_table[idx].b
                 // rgba := unpack_color_rgba(color_lookup_table[idx])
             }
-            log.debugf("\tBackground color: %.2x %.2x %.2x\n", r, g, b)
+            png_debugf("\tBackground color: %.2x %.2x %.2x\n", r, g, b)
         case IEND:
             reached_iend = true
         case:

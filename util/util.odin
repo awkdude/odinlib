@@ -30,6 +30,7 @@ Input_State :: struct {
     using transient: struct {
         keys_pressed, keys_released: Keyboard_State,
         mouse_wheel_delta, mouse_delta: vec2,
+        mouse_buttons_pressed, mouse_buttons_released: bit_set[Mouse_Button],
         buttons_pressed, buttons_released: bit_set[Gamepad_Button],
     },
     gamepad: Gamepad_State,
@@ -86,8 +87,10 @@ set_input_state_from_event :: proc "contextless" (
 	case .Mouse_Button:
 		if event.mouse_button.pressed {
 			input.mouse_buttons += {event.mouse_button.button}
+            input.mouse_buttons_pressed += {event.mouse_button.button}
 		} else {
 			input.mouse_buttons -= {event.mouse_button.button}
+            input.mouse_buttons_released += {event.mouse_button.button}
 		}
 	case .Mouse_Wheel:
 		input.mouse_wheel_delta += event.vec2
@@ -99,7 +102,7 @@ set_input_state_from_event :: proc "contextless" (
 Pixmap :: struct #all_or_none {
     pixels: rawptr,
     w, h: i32,
-    // bytes in row of pixels
+    // number of bytes in a row of pixels
     pitch: i32,
     format: Pixel_Format,
 }
@@ -114,9 +117,9 @@ make_pixmap :: proc(
 	assert(format.bytes_per_pixel == 1 || format.bytes_per_pixel == 4)
 	pitch := w*format.bytes_per_pixel
 	mod_align := pitch % ROW_ALIGNMENT
-	if mod_align != 0 {
-		pitch += ROW_ALIGNMENT - mod_align
-	}
+	// if mod_align != 0 {
+	// 	pitch += ROW_ALIGNMENT - mod_align
+	// }
     pixels, err := mem.alloc(
     	cast(int)(pitch * h),
      	alignment=ROW_ALIGNMENT,
@@ -131,6 +134,7 @@ make_pixmap :: proc(
     }, err == nil
 }
 
+// Defines the pixel layout and number of bytes per pixel
 Pixel_Format :: struct {
 	using layout: Pixel_Layout,
 	bytes_per_pixel: i32,
