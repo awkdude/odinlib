@@ -117,11 +117,11 @@ make_pixmap :: proc(
 	assert(format.bytes_per_pixel == 1 || format.bytes_per_pixel == 4)
 	pitch := w*format.bytes_per_pixel
 	mod_align := pitch % ROW_ALIGNMENT
-	// if mod_align != 0 {
-	// 	pitch += ROW_ALIGNMENT - mod_align
-	// }
+	if mod_align != 0 {
+		pitch += ROW_ALIGNMENT - mod_align
+	}
     pixels, err := mem.alloc(
-    	cast(int)(pitch * h),
+    	(int)(pitch * h),
      	alignment=ROW_ALIGNMENT,
       	allocator=allocator
     )
@@ -221,10 +221,10 @@ unpack_color_4f :: proc "contextless" (
 	format: Pixel_Format) -> Color4f
 {
     color4f: Color4f = {
-        (cast(f32)((color >> format.r) & 0xff) / 255.0),
-        (cast(f32)((color >> format.g) & 0xff) / 255.0),
-        (cast(f32)((color >> format.b) & 0xff) / 255.0),
-        (cast(f32)((color >> format.a) & 0xff) / 255.0),
+        ((f32)((color >> format.r) & 0xff) / 255.0),
+        ((f32)((color >> format.g) & 0xff) / 255.0),
+        ((f32)((color >> format.b) & 0xff) / 255.0),
+        ((f32)((color >> format.a) & 0xff) / 255.0),
     }
     return color4f
 }

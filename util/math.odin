@@ -12,6 +12,24 @@ fixed_int :: #force_inline proc "contextless" (
     return (i32)(fp.i >> Fraction_Width)
 }
 
+matrix4_shear :: proc "contextless"(
+    xy: f32 = 0.0,
+    xz: f32 = 0.0,
+    yx: f32 = 0.0,
+    yz: f32 = 0.0,
+    zx: f32 = 0.0,
+    zy: f32 = 0.0) -> mat4 
+{
+    m: mat4 = 1
+    m[0, 1] = xy
+    m[0, 2] = xz
+    m[1, 0] = yx
+    m[1, 3] = yz
+    m[2, 0] = zx
+    m[2, 1] = zy
+    return m
+}
+
 Rect :: struct {
     x, y, w, h: i32,
 }
@@ -84,7 +102,7 @@ PERP :: mat2{ 0, -1, 1, 0 }
 // 	return {-v.y, v.x}
 // }
 
-color4b_to_4f :: proc(color4b: Color4b) -> Color4f {
+color4b_to_4f :: proc "contextless" (color4b: Color4b) -> Color4f {
 	return Color4f {
 		cast(f32)color4b.r / 255.0,
 		cast(f32)color4b.g / 255.0,

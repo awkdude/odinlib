@@ -33,6 +33,7 @@ load_qoi :: proc(
     magic := [4]u8 {'q', 'o', 'i', 'f'}
     data, load_err := os.read_entire_file_from_path(path, allocator)
     if load_err != nil do return {}, false
+    defer delete(data)
     header: ^QOI_Header = transmute(^QOI_Header)raw_data(data)
     if !slice.equal(header.magic[:], magic[:]) do return {}, false
     pixmap, pix_ok := util.make_pixmap(

@@ -1,6 +1,7 @@
 package util
 
 import "core:os"
+import "core:time"
 import "core:log"
 import "core:strings"
 import "core:math/linalg"
@@ -27,6 +28,7 @@ Source_Shader :: struct {
     program: u32,
     use_2d_default: bool,
     userdata: rawptr,
+    last_modify_times: [Shader_Type]time.Time,
     on_update_proc: proc(program: u32, userdata: rawptr),
 }
 
@@ -48,6 +50,8 @@ source_shader_update :: proc(src_shader: ^Source_Shader) -> Shader_Error {
         if src_shader.program != 0 && gl.IsProgram(src_shader.program) {
             gl.DeleteProgram(src_shader.program)
             src_shader.program = 0
+            src_shader.last_modify_times[.Vertex], _ = os.modification_time_by_path(src_shader.vertex_source_path)
+            src_shader.last_modify_times[.Fragment], _ = os.modification_time_by_path(src_shader.fragment_source_path)
         }
         src_shader.program = new_program
         if src_shader.on_update_proc != nil {
@@ -286,39 +290,11 @@ get_default_program_3d :: proc() -> u32 {
     return program
 }
 
-default_vertex_shader_2d := `
-#version 330 core
+default_vertex_shader_2d := "#version 330 core\n layout (location = 0) in vec2 a_pos; uniform mat4 u_proj; void main() { gl_Position = u_proj * vec4(a_pos, 1.0); }"
 
-layout (location = 0) in vec2 a_pos;
+default_vertex_shader_3d := "#version 330 core\nlayout (location = 0) in vec3 a_pos; uniform mat4 u_proj, u_view, u_model; void main() { gl_Position = u_proj * u_view * u_model * vec4(a_pos, 1.0); } "
 
-uniform mat4 u_proj;
-
-void main() {
-    gl_Position = u_proj * vec4(a_pos, 1.0);
-}
-`
-
-default_vertex_shader_3d := `
-#version 330 core
-
-layout (location = 0) in vec3 a_pos;
-
-uniform mat4 u_proj, u_view, u_model;
-
-void main() {
-    gl_Position = u_proj * u_view * u_model * vec4(a_pos, 1.0);
-}
-`
-
-default_fragment_shader := `
-#version 330 core
-
-out vec4 frag_color;
-
-void main() {
-    frag_color = vec4(1.0);
-}
-`
+default_fragment_shader := "#version 330 core\nout vec4 frag_color;void main() {frag_color = vec4(1.0);}"
 // }}}
 
 Texture_Options :: struct {
@@ -336,15 +312,17 @@ create_texture_from_pixmap :: proc(
     gl.GenTextures(1, &tex_id)
     gl.BindTexture(gl.TEXTURE_2D, tex_id)
     // FIXME: needs to know pitch of pixmap
-    gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
+    // gl.PixelStorei(gl.UNPACK_ALIGNMENT, 8)
     tex_format: i32
     pixmap_format: u32
     if pixmap.format.bytes_per_pixel == 1 {
         tex_format = gl.RED
         pixmap_format = gl.RED
+        gl.PixelStorei(gl.UNPACK_ROW_LENGTH, pixmap.pitch)
     } else if pixmap.format.bytes_per_pixel == 4 {
         tex_format = gl.RGBA8
         pixmap_format = gl.BGRA
+        gl.PixelStorei(gl.UNPACK_ROW_LENGTH, pixmap.pitch/4)
     } else {
         log.panicf("Invalid BPP provided (%v)", pixmap.format.bytes_per_pixel)
     }
